@@ -5,9 +5,9 @@ function in hydrological model calibration
 This repository contains scripts used to calculate grid-aggregated error 
 metrics for residuals of groundwater head observations from wells. The error 
 metrics are 
-* MSE
-* MAE
-* MRE
+* mean squared error (MSE)
+* mean absolute error (MAE)
+* mean root error (MRE)
 * CRPS
 
 It is originally used in context with the calibration of a MIKE SHE 
@@ -18,10 +18,10 @@ hydrological model with PEST or OSTRICH optimization tools.
 the respective test output files.
 
 ## Reference
-A robust objective function for calibration of groundwater models in light of 
-deficiencies of model structure and observations.
-Raphael Schneider, Hans Jørgen Henriksen, Simon Stisen.
-Submitted to Journal of Hydrology.
+Schneider, R., Henriksen, H. J., and Stisen, S.: A robust objective function 
+for calibration of groundwater models in light of deficiencies of model 
+structure and observations, 613, 128339, 
+https://doi.org/10.1016/j.jhydrol.2022.128339, 2022.
 
 ## LICENSE
 Copyright 2022 Raphael Schneider
