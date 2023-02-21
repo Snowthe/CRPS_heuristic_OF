@@ -20,6 +20,10 @@ Usage:
     CRPS_disagg.py -i <LS_grids_file.txt>
 
 @author: Raphael Schneider, GEUS Hydro, rs@geus.dk, May 2022
+Reference: Schneider, R., Henriksen, H. J., and Stisen, S.: A robust objective 
+function for calibration of groundwater models in light of deficiencies of 
+model structure and observations, 613, 128339, 
+https://doi.org/10.1016/j.jhydrol.2022.128339, 2022.
 """
 
 import sys
