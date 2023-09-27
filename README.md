@@ -11,7 +11,8 @@ metrics are
 * CRPS
 
 It is originally used in context with the calibration of a MIKE SHE 
-hydrological model with PEST or OSTRICH optimization tools.
+hydrological model with PEST or OSTRICH optimization tools. However, it can be 
+applied in various optimization contexts where large evaluation datasets exist.
 
 "Storaa_GWhead_test_observations.txt" is a test input file, and 
 "Storaa_GWhead_test_grids.txt" and "Storaa_GWhead_test_grids_crpsDis.txt" are 
@@ -20,8 +21,11 @@ the respective test output files.
 ## Reference
 Schneider, R., Henriksen, H. J., and Stisen, S.: A robust objective function 
 for calibration of groundwater models in light of deficiencies of model 
-structure and observations, 613, 128339, 
+structure and observations, J. Hydrol., 613, 128339, 
 https://doi.org/10.1016/j.jhydrol.2022.128339, 2022.
+
+(there also exists an earlier preprint version in HESS Discussion; please refer 
+to the final article in Journal of Hydrology above)
 
 ## LICENSE
 Copyright 2022 Raphael Schneider
