@@ -13,8 +13,9 @@ Input: _grids.txt file, which is output from LSobs_to_grid_all_norms.py
 Output: _crpsDis.txt file, which displays all crps values (weighted and 
     unweighted), aggregated as well as disaggregated per grid
 
-Requires properscoring package: https://github.com/TheClimateCorporation/properscoring
-    pip install properscoring
+Uses code (adapted) from the properscoring python package: 
+https://github.com/TheClimateCorporation/properscoring
+(LICENSE see below)
 
 Usage:
     CRPS_disagg.py -i <LS_grids_file.txt>
@@ -30,41 +31,100 @@ import sys
 import getopt
 import pandas as pd
 import numpy as np
-import properscoring as ps #for crps (still in direct use to check results)
-from properscoring._utils import move_axis_to_end, argsort_indices
 
-def crps_disaggregated(observations, forecasts, gridID, weights=None, issorted=False, axis=-1):
+#%% CRPS Functions
+"""
+The following functions are taken and adapted from the properscoring python package: 
+https://github.com/TheClimateCorporation/properscoring
+(for ease of use, to avoid having to install the package)
+
+----
+LICENSE (properscoring)
+----
+Copyright 2015 The Climate Corporation
+Licensed under the Apache License, Version 2.0 (the "License"); you may not 
+use this file except in compliance with the License. You may obtain a copy 
+of the License at
+http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software 
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT 
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the 
+License for the specific language governing permissions and limitations 
+under the License.
+"""
+def _move_axis_to_end(array, axis):
+    """
+    Function taken directly from properscoring package (_utils.py): 
+    https://github.com/TheClimateCorporation/properscoring
+    """
+    array = np.asarray(array)
+    return np.rollaxis(array, axis, start=array.ndim)
+
+def _argsort_indices(a, axis=-1):
+    """
+    Function taken directly from properscoring package (_utils.py): 
+    https://github.com/TheClimateCorporation/properscoring
+    
+    Like argsort, but returns an index suitable for sorting the
+    the original array even if that array is multidimensional
+    """
+    a = np.asarray(a)
+    ind = list(np.ix_(*[np.arange(d) for d in a.shape]))
+    ind[axis] = a.argsort(axis)
+    return tuple(ind)
+
+def crps_disaggregated(observations, forecasts, weights=None, gridID=None, issorted=False, axis=-1):
     """
     Code taken and adapted from properscoring package: 
     https://github.com/TheClimateCorporation/properscoring
     crps_ensemble() in _crps.py and _crps_ensemble_gufunc() in _gufuncs.py
-    Requires an identifier of each well/grid as additional input; returns it in
-    same order as the individual CRPS values
+    
     PLEASE NOTE: This function works only for a single "observation", e.g. the 
     expected value of 0 for ME on wells!
     
+    Parameters:
     ----
-    LICENSE (properscoring)
-    ----
-    Copyright 2015 The Climate Corporation
-    Licensed under the Apache License, Version 2.0 (the "License"); you may not 
-    use this file except in compliance with the License. You may obtain a copy 
-    of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-    Unless required by applicable law or agreed to in writing, software 
-    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT 
-    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the 
-    License for the specific language governing permissions and limitations 
-    under the License.
+    observations : float
+        The optimal value, typically 0 (ME = 0).
+        (In the standard formulation of CRPS, this would be the observed/true 
+        value, and could be a vector. Here, single "observation" is expected)
+    forecasts: array of len N
+        The actual forecasted/simulated values (i.e. actual MEs)
+    weights : array_like, optional (default=None)
+        If provided, the CRPS is calculated exactly with the assigned
+        probability weights to each forecast. Weights should be positive, but
+        do not need to be normalized. By default, each forecast is weighted
+        equally.
+    gridID : array of len N
+        (optional) Identifier of each well/grid as additional input; returns it 
+        in same order as the individual CRPS values
+    issorted : bool, optional (default=False)
+        Optimization flag to indicate that the elements of `ensemble` are
+        already sorted along `axis`.
+    axis : int, optional (default=-1)
+        Axis in forecasts and weights which corresponds to different ensemble
+        members, along which to calculate CRPS.
+
+    Returns
+    -------
+    integral : float
+        CRPS
+    increment : np.ndarray
+        CRPS, individual contribution of each forecast
+    gridID : np.ndarray
+        gridID, sorted as increments
     """
     observations = np.asarray(observations)
     forecasts = np.asarray(forecasts)
-    gridID = np.asarray(gridID) #added by Raphael Schneider
+    if gridID is None:  # gridID added by Raphael Schneider
+        gridID = np.arange(len(forecasts))
+    else:
+        gridID = np.asarray(gridID)
     if axis != -1:
-        forecasts = move_axis_to_end(forecasts, axis)
-        gridID = move_axis_to_end(gridID, axis) #added by Raphael Schneider
+        forecasts = _move_axis_to_end(forecasts, axis)
+        gridID = _move_axis_to_end(gridID, axis) #added by Raphael Schneider
     if weights is not None:
-        weights = move_axis_to_end(weights, axis) 
+        weights = _move_axis_to_end(weights, axis)
         if weights.shape != forecasts.shape:
             raise ValueError('forecasts and weights must have the same shape')
     if observations.shape not in [forecasts.shape, forecasts.shape[:-1]]:
@@ -77,15 +137,15 @@ def crps_disaggregated(observations, forecasts, gridID, weights=None, issorted=F
                              'an ensemble forecast')
         return abs(observations - forecasts)
     if not issorted:
-        if weights is None:  #adapted by Raphael Schneider
+        if weights is None: #adapted by Raphael Schneider
             #forecasts = np.sort(forecasts, axis=-1)
-            idx = argsort_indices(forecasts, axis=-1)
+            idx = _argsort_indices(forecasts, axis=-1)
             forecasts = forecasts[idx]
             gridID = gridID[idx]
         else:
-            idx = argsort_indices(forecasts, axis=-1)
+            idx = _argsort_indices(forecasts, axis=-1)
             forecasts = forecasts[idx]
-            gridID = gridID[idx]  #added by Raphael Schneider
+            gridID = gridID[idx] #added by Raphael Schneider
             weights = weights[idx]
     if weights is None:
         weights = np.ones_like(forecasts)
@@ -97,13 +157,13 @@ def crps_disaggregated(observations, forecasts, gridID, weights=None, issorted=F
     if np.isnan(obs):
         #result = np.nan
         #return
-        return np.nan  #adapted by Raphael Schneider
+        return np.nan #adapted by Raphael Schneider
     total_weight = 0.0
     for n, weight in enumerate(weights):
         if np.isnan(forecasts[n]):
             # NumPy sorts NaN to the end
             break
-        if not weight >= 0:  #adapted by Raphael Schneider
+        if not weight >= 0: #adapted by Raphael Schneider
             # this catches NaN weights
             return np.nan
         total_weight += weight
@@ -175,9 +235,9 @@ def main():
     lsout = pd.DataFrame(index=['CRPS'], columns=cols, dtype=float)
     # get CRPS from properscoring (i.e. the aggregated value)
     temp = np.asarray(lsin.ME).copy()
-    lsout.loc['CRPS','unweighted'] = ps.crps_ensemble(0, temp) #unweighted
+    lsout.loc['CRPS','unweighted'] = crps_disaggregated(0, temp)[0] #unweighted
     tempw = np.asarray(lsin.weight)
-    lsout.loc['CRPS','weighted'] = ps.crps_ensemble(0, temp, tempw) #weighted
+    lsout.loc['CRPS','weighted'] = crps_disaggregated(0, temp, weights=tempw)[0] #weighted
     lsout.loc['CRPS','ME'] = np.nan
     lsout.loc['CRPS','nobs'] = lsin['nobs'].sum()
   
